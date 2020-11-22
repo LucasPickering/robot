@@ -1,27 +1,44 @@
-use gilrs::{Button, Event, Gilrs};
+mod input;
+mod motors;
+mod sensors;
 
-fn main() {
-    let mut gilrs = Gilrs::new().unwrap();
+use crate::{
+    input::{InputHandler, TankMapping},
+    motors::{Motor, Motors},
+};
+use log::error;
 
-    // Iterate over all connected gamepads
-    for (_id, gamepad) in gilrs.gamepads() {
-        println!("{} is {:?}", gamepad.name(), gamepad.power_info());
+#[derive(Debug)]
+struct Robot {
+    input_handler: InputHandler<TankMapping>,
+    motors: Motors,
+}
+
+impl Robot {
+    pub fn new() -> Self {
+        Self {
+            input_handler: InputHandler::new(TankMapping),
+            motors: Motors::new(),
+        }
     }
 
-    let mut active_gamepad = None;
-
-    loop {
-        // Examine new events
-        while let Some(Event { id, event, time }) = gilrs.next_event() {
-            println!("{:?} New event from {}: {:?}", time, id, event);
-            active_gamepad = Some(id);
-        }
-
-        // You can also use cached gamepad state
-        if let Some(gamepad) = active_gamepad.map(|id| gilrs.gamepad(id)) {
-            if gamepad.is_pressed(Button::South) {
-                println!("Button South is pressed (XBox - A, PS - X)");
+    fn robot_loop(&mut self) {
+        for &motor in Motor::ALL_MOTORS {
+            let speed = self.input_handler.motor_value(motor);
+            if let Err(err) = self.motors.set_speed(motor, speed) {
+                error!("{}", err);
             }
         }
     }
+
+    pub fn run(&mut self) {
+        loop {
+            self.robot_loop();
+        }
+    }
+}
+
+fn main() {
+    let mut robot = Robot::new();
+    robot.run();
 }
