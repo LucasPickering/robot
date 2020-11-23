@@ -23,3 +23,29 @@ sudo apt update
 sudo apt install gcc-arm-linux-gnueabihf libudev-dev:armhf
 export PKG_CONFIG_ALLOW_CROSS=1
 ```
+
+^ Those steps might not actually work at all. You may have to manually download the toolchain and add it to your `PATH`.
+
+https://chacin.dev/blog/cross-compiling-rust-for-the-raspberry-pi/
+
+### Cargo Make
+
+Useful tool.
+
+```sh
+cargo install cargo-make
+```
+
+In `Makefile.toml`, set `ROBOT_HOST` to the `username@hostname` of your robot.
+
+## Building
+
+```sh
+cargo make deploy
+```
+
+ez clap
+
+## Debugging
+
+You can increase the logging level by running with `RUST_LOG=<level>`. See https://docs.rs/log/0.4.11/log/.

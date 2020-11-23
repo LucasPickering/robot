@@ -1,0 +1,22 @@
+[env]
+DEST_DIR = "~/robot"
+ROBOT_HOST = "pi@mudkip"
+
+[env.development]
+BIN_PATH = "target/armv7-unknown-linux-gnueabihf/debug/robot"
+
+[env.release]
+# TODO make this actually do a release build
+BIN_PATH = "target/armv7-unknown-linux-gnueabihf/release/robot"
+
+[tasks.ssh]
+args = ["${ROBOT_HOST}", "${@}"]
+command = "ssh"
+
+[tasks.mkdir]
+args = ["${ROBOT_HOST}", "mkdir -p ${DEST_DIR}"]
+command = "ssh"
+
+[tasks.deploy]
+dependencies = ["build", "mkdir"]
+script = ["rsync ${BIN_PATH} ${ROBOT_HOST}:${DEST_DIR}/robot"]

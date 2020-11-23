@@ -1,4 +1,4 @@
-use log::debug;
+use log::trace;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Motor {
@@ -31,7 +31,7 @@ impl Motors {
         motor: Motor,
         speed: f32,
     ) -> anyhow::Result<()> {
-        debug!("Set {:?} to {}", motor, speed);
+        trace!("Set {:?} to {}", motor, speed);
         Ok(())
     }
 }

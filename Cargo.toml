@@ -6,6 +6,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0"
+env_logger = "0.8"
 gilrs = "0.8.0"
 log = "0.4"
 strum = {version = "0.20", features = ["derive"]}
