@@ -1,9 +1,11 @@
+mod config;
 mod input;
 mod motors;
 mod sensors;
 
 use crate::{
-    input::{InputHandler, TankMapping},
+    config::RobotConfig,
+    input::InputHandler,
     motors::{Motor, Motors},
 };
 use env_logger::Env;
@@ -11,14 +13,14 @@ use log::{error, info};
 
 #[derive(Debug)]
 struct Robot {
-    input_handler: InputHandler<TankMapping>,
+    input_handler: InputHandler,
     motors: Motors,
 }
 
 impl Robot {
-    pub fn new() -> Self {
+    pub fn new(config: RobotConfig) -> Self {
         Self {
-            input_handler: InputHandler::new(TankMapping),
+            input_handler: InputHandler::new(config.input),
             motors: Motors::new(),
         }
     }
@@ -49,9 +51,10 @@ fn main() {
     // Initialize logger with default log level of `info`
     env_logger::Builder::from_env(Env::default().default_filter_or("info"))
         .init();
-
     info!("Initializing robot...");
-    let mut robot = Robot::new();
+    let config = RobotConfig::load().expect("Error loading config");
+    info!("Loaded config:\n{:#?}", config);
+    let mut robot = Robot::new(config);
     info!("Finished initialization");
     robot.run();
 }

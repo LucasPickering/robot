@@ -19,4 +19,4 @@ command = "ssh"
 
 [tasks.deploy]
 dependencies = ["build", "mkdir"]
-script = ["rsync ${BIN_PATH} ${ROBOT_HOST}:${DEST_DIR}/robot"]
+script = ["rsync -r ${BIN_PATH} config ${ROBOT_HOST}:${DEST_DIR}/./"]
