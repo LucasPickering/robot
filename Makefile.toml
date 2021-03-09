@@ -1,6 +1,7 @@
+env_files = ["./robot.env"]
+
 [env]
 DEST_DIR = "~/robot"
-ROBOT_HOST = "pi@mudkip"
 
 [env.development]
 BIN_PATH = "target/armv7-unknown-linux-gnueabihf/debug/robot"
@@ -20,3 +21,8 @@ command = "ssh"
 [tasks.deploy]
 dependencies = ["build", "mkdir"]
 script = ["rsync -r ${BIN_PATH} config ${ROBOT_HOST}:${DEST_DIR}/./"]
+
+[tasks.fmt]
+# Formatting requires nightly for experimental settings
+args = ["+nightly", "fmt"]
+command = "cargo"

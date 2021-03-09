@@ -25,7 +25,7 @@ impl Motors {
         Self {}
     }
 
-    // Set speed for a motor, -1 to 1
+    /// Set speed for a motor, -1 to 1
     pub fn set_speed(
         &mut self,
         motor: Motor,
