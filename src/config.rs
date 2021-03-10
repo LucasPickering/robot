@@ -1,31 +1,76 @@
-use crate::input::{InputMapping, TankMapping};
+use crate::{input::InputAxis, motors::MotorChannel};
 use config::{Config, File};
+use gilrs::Axis;
 use log::info;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 const CONFIG_PATH: &str = "config/default.toml";
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct RobotConfig {
+    /// Path to the I2C device on the system
+    pub i2c_device_path: String,
+    /// User input configuration
     pub input: InputConfig,
+    /// Robot drive system configuration
+    pub drive: DriveConfig,
 }
 
-/// All the possible input mapping types. The serialized version of this should
-/// be just a single string.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum InputMappingType {
-    Tank,
-}
-
-#[derive(Debug, Deserialize)]
+/// User input configuration, including button and axis mappings
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub struct InputConfig {
-    /// The type of input mapping to use. Each mapping type corresponds to a
-    /// particular field in this config.
-    #[serde(rename = "type")]
-    pub input_type: InputMappingType,
-    #[serde(default)]
-    pub tank: TankMapping,
+    /// Configuration for the inputs used to control the robot drive system
+    pub drive: DriveInputMapping,
+}
+
+/// The mapping of inputs used to control the robot's drive system. There are
+/// multiple different drive input types, so each variant in this enum
+/// represents one mapping type.
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum DriveInputMapping {
+    /// Tank drive, in which the two motors on one side of the robot (left or
+    /// right) run in sync. One axis controls the left motors and another
+    /// controls the right.
+    Tank {
+        left_motor_axis: InputAxis,
+        right_motor_axis: InputAxis,
+    },
+}
+
+/// Robot drive system configuration, including motor mappings
+#[derive(Clone, Debug, Deserialize)]
+pub struct DriveConfig {
+    /// I2C address for the drive motor controller board
+    pub i2c_address: u8,
+
+    /// Mapping of motor positions as the drive train sees them (front-left,
+    /// front-right, etc.) to how the motor controller sees them (motor 1,
+    /// motor 2, etc.). This _should_ always have an entry for each
+    /// [DriveMotor], but that isn't enforced. If one is missing, it will
+    /// trigger a warning at runtime.
+    pub motors: HashMap<DriveMotor, MotorChannel>,
+}
+
+/// TODO
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum DriveMotor {
+    FrontLeft,
+    FrontRight,
+    BackLeft,
+    BackRight,
+}
+
+impl DriveMotor {
+    /// TODO use strum
+    pub const ALL: &'static [Self] = &[
+        Self::FrontLeft,
+        Self::FrontRight,
+        Self::BackLeft,
+        Self::BackRight,
+    ];
 }
 
 impl RobotConfig {
@@ -40,11 +85,17 @@ impl RobotConfig {
     }
 }
 
-impl InputConfig {
-    /// Get the selected input mapping, as defined by the `input_type` field
-    pub fn into_mapping(self) -> Box<dyn InputMapping> {
-        match self.input_type {
-            InputMappingType::Tank => Box::new(self.tank),
+impl Default for DriveInputMapping {
+    fn default() -> Self {
+        Self::Tank {
+            left_motor_axis: InputAxis {
+                axis: Axis::LeftStickY,
+                transformation: Default::default(),
+            },
+            right_motor_axis: InputAxis {
+                axis: Axis::RightStickY,
+                transformation: Default::default(),
+            },
         }
     }
 }

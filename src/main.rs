@@ -4,27 +4,32 @@ mod motors;
 mod sensors;
 
 use crate::{
-    config::RobotConfig,
+    config::{DriveMotor, RobotConfig},
     input::InputHandler,
-    motors::{MotorHat, MotorPosition},
+    motors::MotorHat,
 };
 use anyhow::Context;
 use env_logger::Env;
-use log::{error, info};
 
+/// Main Robot struct. Handles initialization and operation of all robotic
+/// activities, as well as processing user input.
 // TODO fix debug derive
 // #[derive(Debug)]
 struct Robot {
+    config: RobotConfig,
     input_handler: InputHandler,
     drive_motors: MotorHat,
 }
 
 impl Robot {
     pub fn new(config: RobotConfig) -> anyhow::Result<Self> {
+        let input_handler = InputHandler::new(config.input);
+        let drive_motors =
+            MotorHat::new(&config).context("Initializing drive motors")?;
         Ok(Self {
-            input_handler: InputHandler::new(config.input),
-            drive_motors: MotorHat::new()
-                .context("Initializing drive motors")?,
+            config,
+            input_handler,
+            drive_motors,
         })
     }
 
@@ -34,21 +39,29 @@ impl Robot {
         // won't do anything. This allows hot-plugging
         self.input_handler.init_gamepad();
 
-        for &motor in MotorPosition::ALL {
-            // let speed = self.input_handler.motor_value(motor).unwrap_or(1.0);
-            let speed = 1.0;
-            if let Err(err) = self
-                .drive_motors
-                .set_speed(motor, speed)
-                .context("Setting motor speed")
-            {
-                error!("{:?}", err);
+        for &motor in DriveMotor::ALL {
+            // TODO change unwrap_or back to 0
+            let speed = self.input_handler.motor_value(motor).unwrap_or(1.0);
+            match self.config.drive.motors.get(&motor) {
+                Some(&motor_channel) => {
+                    if let Err(err) = self
+                        .drive_motors
+                        .set_speed(motor_channel, speed)
+                        .context("Setting motor speed")
+                    {
+                        log::error!("{:?}", err);
+                    }
+                }
+                None => {
+                    log::warn!("No motor channel mapped to motor: {:?}", motor);
+                }
             }
         }
     }
 
+    /// Kick off the robot loop, after initialize is complete
     pub fn run(&mut self) {
-        info!("Starting robot loop...");
+        log::info!("Starting robot loop...");
         loop {
             self.robot_loop();
         }
@@ -59,10 +72,10 @@ fn main() {
     // Initialize logger with default log level of `info`
     env_logger::Builder::from_env(Env::default().default_filter_or("info"))
         .init();
-    info!("Initializing robot...");
+    log::info!("Initializing robot...");
     let config = RobotConfig::load().expect("Error loading config");
-    info!("Loaded config:\n{:#?}", config);
+    log::info!("Loaded config:\n{:#?}", config);
     let mut robot = Robot::new(config).expect("Error initializing hardware");
-    info!("Finished initialization");
+    log::info!("Finished initialization");
     robot.run();
 }

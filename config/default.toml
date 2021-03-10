@@ -1,2 +1,7 @@
+i2c_device_path = "/dev/i2c-1"
+
 [input]
 type = "tank"
+
+[drive]
+i2c_address = 96 # 0x60

@@ -1,13 +1,11 @@
-mod tank;
-
-use std::fmt::Debug;
-
-pub use tank::*;
-
-use crate::{config::InputConfig, motors::MotorPosition};
+use crate::{
+    config::{DriveInputMapping, DriveMotor, InputConfig},
+    motors::MotorChannel,
+};
 use gilrs::{Axis, Gamepad, GamepadId, Gilrs};
 use log::{debug, error, info, trace, warn};
 use serde::Deserialize;
+use std::fmt::Debug;
 
 /// An input mapping defines how inputs on a gamepad are mapped to values on the
 /// robot.
@@ -17,7 +15,7 @@ pub trait InputMapping: Debug {
     fn motor_value(
         &self,
         handler: &InputHandler,
-        motor: MotorPosition,
+        motor: MotorChannel,
     ) -> Option<f32>;
 }
 
@@ -59,7 +57,7 @@ pub struct InputAxis {
 #[derive(Debug)]
 pub struct InputHandler {
     gil: Gilrs,
-    mapping: Box<dyn InputMapping>,
+    config: InputConfig,
     // Active gamepad in use. None if there is none connected.
     gamepad_id: Option<GamepadId>,
 }
@@ -69,7 +67,7 @@ impl InputHandler {
         let gil = Gilrs::new().unwrap();
         let mut rv = Self {
             gil,
-            mapping: config.into_mapping(),
+            config,
             gamepad_id: None,
         };
 
@@ -132,7 +130,20 @@ impl InputHandler {
     /// Get the value for a specific motor. The corresponding input value will
     /// be looked up using the input mapping. Returns `None` if we have no
     /// gamepad connected.
-    pub fn motor_value(&self, motor: MotorPosition) -> Option<f32> {
-        self.mapping.motor_value(self, motor)
+    pub fn motor_value(&self, motor: DriveMotor) -> Option<f32> {
+        // Map the desired motor to the corresponding input axis, based on the
+        // input config
+        let axis = match self.config.drive {
+            DriveInputMapping::Tank {
+                left_motor_axis,
+                right_motor_axis,
+            } => match motor {
+                DriveMotor::FrontLeft => left_motor_axis,
+                DriveMotor::BackLeft => left_motor_axis,
+                DriveMotor::FrontRight => right_motor_axis,
+                DriveMotor::BackRight => right_motor_axis,
+            },
+        };
+        self.read_axis(axis)
     }
 }

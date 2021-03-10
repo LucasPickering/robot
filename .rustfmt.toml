@@ -1,5 +1,5 @@
 max_width = 80
 # these two are only available on nightly (F), so we also have to format on
 # a nightly toolchain
-merge_imports = true
+imports_granularity = "crate"
 wrap_comments = true
