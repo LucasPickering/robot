@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 pub use tank::*;
 
-use crate::{config::InputConfig, motors::Motor};
+use crate::{config::InputConfig, motors::MotorPosition};
 use gilrs::{Axis, Gamepad, GamepadId, Gilrs};
 use log::{debug, error, info, trace, warn};
 use serde::Deserialize;
@@ -14,7 +14,11 @@ use serde::Deserialize;
 pub trait InputMapping: Debug {
     /// Determine the necessary input value for a motor, based on the current
     /// input state. Return None if the value cannot be read from input.
-    fn motor_value(&self, handler: &InputHandler, motor: Motor) -> Option<f32>;
+    fn motor_value(
+        &self,
+        handler: &InputHandler,
+        motor: MotorPosition,
+    ) -> Option<f32>;
 }
 
 /// A formula used to transform input axis values into output axis values.
@@ -128,7 +132,7 @@ impl InputHandler {
     /// Get the value for a specific motor. The corresponding input value will
     /// be looked up using the input mapping. Returns `None` if we have no
     /// gamepad connected.
-    pub fn motor_value(&self, motor: Motor) -> Option<f32> {
+    pub fn motor_value(&self, motor: MotorPosition) -> Option<f32> {
         self.mapping.motor_value(self, motor)
     }
 }

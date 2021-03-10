@@ -6,7 +6,7 @@ mod sensors;
 use crate::{
     config::RobotConfig,
     input::InputHandler,
-    motors::{Motor, Motors},
+    motors::{MotorHat, MotorPosition},
 };
 use anyhow::Context;
 use env_logger::Env;
@@ -16,14 +16,15 @@ use log::{error, info};
 // #[derive(Debug)]
 struct Robot {
     input_handler: InputHandler,
-    motors: Motors,
+    drive_motors: MotorHat,
 }
 
 impl Robot {
     pub fn new(config: RobotConfig) -> anyhow::Result<Self> {
         Ok(Self {
             input_handler: InputHandler::new(config.input),
-            motors: Motors::new().context("Error initializing motors")?,
+            drive_motors: MotorHat::new()
+                .context("Initializing drive motors")?,
         })
     }
 
@@ -33,10 +34,15 @@ impl Robot {
         // won't do anything. This allows hot-plugging
         self.input_handler.init_gamepad();
 
-        for &motor in Motor::ALL_MOTORS {
-            let speed = self.input_handler.motor_value(motor).unwrap_or(0.0);
-            if let Err(err) = self.motors.set_speed(motor, speed) {
-                error!("{}", err);
+        for &motor in MotorPosition::ALL {
+            // let speed = self.input_handler.motor_value(motor).unwrap_or(1.0);
+            let speed = 1.0;
+            if let Err(err) = self
+                .drive_motors
+                .set_speed(motor, speed)
+                .context("Setting motor speed")
+            {
+                error!("{:?}", err);
             }
         }
     }

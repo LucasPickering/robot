@@ -1,6 +1,6 @@
 use crate::{
     input::{InputAxis, InputMapping},
-    motors::Motor,
+    motors::MotorPosition,
 };
 use gilrs::Axis;
 use serde::Deserialize;
@@ -16,12 +16,17 @@ pub struct TankMapping {
 }
 
 impl InputMapping for TankMapping {
-    fn motor_value(&self, handler: &InputHandler, motor: Motor) -> Option<f32> {
+    fn motor_value(
+        &self,
+        handler: &InputHandler,
+        motor: MotorPosition,
+    ) -> Option<f32> {
         let axis = match motor {
-            Motor::RearLeft => self.left_motor_axis,
-            Motor::FrontLeft => self.left_motor_axis,
-            Motor::RearRight => self.right_motor_axis,
-            Motor::FrontRight => self.right_motor_axis,
+            // TODO add abstraction layer for motor position to number
+            MotorPosition::Motor1 => self.left_motor_axis,
+            MotorPosition::Motor2 => self.left_motor_axis,
+            MotorPosition::Motor3 => self.right_motor_axis,
+            MotorPosition::Motor4 => self.right_motor_axis,
         };
         handler.read_axis(axis)
     }
