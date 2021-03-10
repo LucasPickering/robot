@@ -4,7 +4,9 @@ Some code to run a robot I'm building. Runs on a Raspberry Pi 3.
 
 ## Setup
 
-### Cross-compiling
+### Dev Machine
+
+#### Cross-compiling
 
 To cross-compile for the Raspberry Pi from Ubuntu:
 
@@ -28,7 +30,7 @@ export PKG_CONFIG_ALLOW_CROSS=1
 
 https://chacin.dev/blog/cross-compiling-rust-for-the-raspberry-pi/
 
-### Cargo Make
+#### Cargo Make
 
 Useful tool.
 
@@ -42,13 +44,19 @@ Then set your robot username and hostname like so:
 echo ROBOT_HOST=username@hostname > robot.env
 ```
 
+### Raspberry Pi
+
+Some first time setup is required on the Pi:
+
+- [Enable I2C support](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-4-gpio-setup/configuring-i2c)
+
 ## Building
 
 ```sh
 cargo make deploy
 ```
 
-ez clap
+Then execute `~/robot/robot` on the Pi.
 
 ## Debugging
 

@@ -8,21 +8,23 @@ use crate::{
     input::InputHandler,
     motors::{Motor, Motors},
 };
+use anyhow::Context;
 use env_logger::Env;
 use log::{error, info};
 
-#[derive(Debug)]
+// TODO fix debug derive
+// #[derive(Debug)]
 struct Robot {
     input_handler: InputHandler,
     motors: Motors,
 }
 
 impl Robot {
-    pub fn new(config: RobotConfig) -> Self {
-        Self {
+    pub fn new(config: RobotConfig) -> anyhow::Result<Self> {
+        Ok(Self {
             input_handler: InputHandler::new(config.input),
-            motors: Motors::new(),
-        }
+            motors: Motors::new().context("Error initializing motors")?,
+        })
     }
 
     /// A single iteration of the main loop
@@ -54,7 +56,7 @@ fn main() {
     info!("Initializing robot...");
     let config = RobotConfig::load().expect("Error loading config");
     info!("Loaded config:\n{:#?}", config);
-    let mut robot = Robot::new(config);
+    let mut robot = Robot::new(config).expect("Error initializing hardware");
     info!("Finished initialization");
     robot.run();
 }
