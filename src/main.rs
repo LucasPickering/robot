@@ -1,9 +1,11 @@
+mod api;
 mod config;
 mod input;
 mod motors;
 mod sensors;
 
 use crate::{
+    api::Api,
     config::{DriveMotor, RobotConfig},
     input::InputHandler,
     motors::MotorHat,
@@ -29,6 +31,12 @@ impl Robot {
         let input_handler = InputHandler::new(config.input);
         let drive_motors =
             MotorHat::new(&config).context("Initializing drive motors")?;
+
+        let api = Api::new();
+        async_std::task::spawn(async {
+            api.run().await.unwrap(); // TODO remove unwrap
+        });
+
         Ok(Self {
             config,
             input_handler,
