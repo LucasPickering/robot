@@ -50,13 +50,21 @@ Some first time setup is required on the Pi:
 
 - [Enable I2C support](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-4-gpio-setup/configuring-i2c)
 
-## Building
+## Build & Execute
+
+The easiest way to build+run code is:
 
 ```sh
-cargo make deploy
+cargo make watch
 ```
 
-Then execute `~/robot/robot` on the Pi.
+This will watch the source code and when it changes:
+
+1. Build
+2. Copy the new executable (and config files) onto the Pi
+3. Run the new version on the Pi
+
+See `Makefile.toml` for the individual steps involved in this if you don't want all of them.
 
 ## Debugging
 

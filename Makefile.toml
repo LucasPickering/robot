@@ -10,19 +10,35 @@ BIN_PATH = "target/armv7-unknown-linux-gnueabihf/debug/robot"
 # TODO make this actually do a release build
 BIN_PATH = "target/armv7-unknown-linux-gnueabihf/release/robot"
 
-[tasks.ssh]
-args = ["${ROBOT_HOST}", "${@}"]
-command = "ssh"
-
-[tasks.mkdir]
-args = ["${ROBOT_HOST}", "mkdir -p ${DEST_DIR}"]
-command = "ssh"
-
-[tasks.deploy]
-dependencies = ["build", "mkdir"]
-script = ["rsync -r ${BIN_PATH} config ${ROBOT_HOST}:${DEST_DIR}/./"]
-
+# Run rustfmt
 [tasks.fmt]
 # Formatting requires nightly for experimental settings
 args = ["+nightly", "fmt"]
 command = "cargo"
+
+# Open an SSH session on the robot host
+[tasks.ssh]
+args = ["${ROBOT_HOST}", "${@}"]
+command = "ssh"
+
+# Make the destination directory on the robot host
+[tasks.mkdir]
+args = ["${ROBOT_HOST}", "mkdir -p ${DEST_DIR}"]
+command = "ssh"
+
+# Copy the config and executable to the robot host
+[tasks.deploy]
+dependencies = ["build", "mkdir"]
+script = ["rsync -r ${BIN_PATH} config ${ROBOT_HOST}:${DEST_DIR}/./"]
+
+# Run the program on the robot host
+[tasks.run]
+args = ["-t", "${ROBOT_HOST}", "cd ${DEST_DIR}; ./robot"]
+command = "ssh"
+dependencies = ["deploy"]
+
+# Watch source and when it changes, build+copy+run the program
+[tasks.watch]
+args = ["watch", "-x", "make run"]
+command = "cargo"
+install_crate = {crate_name = "cargo-watch", binary = "cargo", test_arg = ["watch", "--help"]}
