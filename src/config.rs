@@ -5,8 +5,6 @@ use log::info;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-const CONFIG_PATH: &str = "config/default.toml";
-
 #[derive(Clone, Debug, Deserialize)]
 pub struct RobotConfig {
     /// Path to the I2C device on the system
@@ -74,11 +72,11 @@ impl DriveMotor {
 }
 
 impl RobotConfig {
-    pub fn load() -> anyhow::Result<Self> {
-        info!("Reading config from {}", CONFIG_PATH);
+    pub fn load(config_path: &str) -> anyhow::Result<Self> {
+        info!("Reading config from {}", config_path);
         let mut s = Config::new();
 
-        s.merge(File::with_name(CONFIG_PATH))?;
+        s.merge(File::with_name(config_path))?;
         // may want to add more config sources here at some point
 
         Ok(s.try_into()?)

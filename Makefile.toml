@@ -46,7 +46,7 @@ script = ["rsync -r ${BIN_PATH} config ${ROBOT_HOST}:${DEST_DIR}/./"]
 
 # Run the program on the robot host
 [tasks.run]
-args = ["-t", "${ROBOT_HOST}", "cd ${DEST_DIR}; ./robot"]
+args = ["${ROBOT_HOST}", "${DEST_DIR}/robot", "${DEST_DIR}/config/default.toml"]
 command = "ssh"
 dependencies = ["deploy"]
 

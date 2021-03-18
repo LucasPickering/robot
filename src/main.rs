@@ -10,6 +10,9 @@ use crate::{
 };
 use anyhow::Context;
 use env_logger::Env;
+use std::env;
+
+const DEFAULT_CONFIG_PATH: &str = "./config/default.toml";
 
 /// Main Robot struct. Handles initialization and operation of all robotic
 /// activities, as well as processing user input.
@@ -39,9 +42,10 @@ impl Robot {
         // won't do anything. This allows hot-plugging
         self.input_handler.init_gamepad();
 
+        // Set speed for each drive motor based on the user input
         for &motor in DriveMotor::ALL {
-            // TODO change unwrap_or back to 0
-            let speed = self.input_handler.motor_value(motor).unwrap_or(1.0);
+            let speed = self.input_handler.motor_value(motor).unwrap_or(0.0);
+            // Map the drive motor position to a motor channel #
             match self.config.drive.motors.get(&motor) {
                 Some(&motor_channel) => {
                     if let Err(err) = self
@@ -69,12 +73,18 @@ impl Robot {
 }
 
 fn main() {
-    // Initialize logger with default log level of `info`
+    // Initialize logger with default log level
     env_logger::Builder::from_env(Env::default().default_filter_or("info"))
         .init();
+
     log::info!("Initializing robot...");
-    let config = RobotConfig::load().expect("Error loading config");
+    // Read config path from CLI args
+    let config_path = env::args()
+        .nth(1)
+        .unwrap_or_else(|| DEFAULT_CONFIG_PATH.into());
+    let config = RobotConfig::load(&config_path).expect("Error loading config");
     log::info!("Loaded config:\n{:#?}", config);
+
     let mut robot = Robot::new(config).expect("Error initializing hardware");
     log::info!("Finished initialization");
     robot.run();
