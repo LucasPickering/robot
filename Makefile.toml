@@ -2,13 +2,26 @@ env_files = ["./robot.env"]
 
 [env]
 DEST_DIR = "~/robot"
+TARGET = "armv7-unknown-linux-gnueabihf"
 
 [env.development]
-BIN_PATH = "target/armv7-unknown-linux-gnueabihf/debug/robot"
+BIN_PATH = "target/${TARGET}/debug/robot"
 
 [env.release]
 # TODO make this actually do a release build
-BIN_PATH = "target/armv7-unknown-linux-gnueabihf/release/robot"
+BIN_PATH = "target/${TARGET}/release/robot"
+
+# Build docker image that we use for cross-compiling
+[tasks.build-image]
+args = ["build", "-t", "robot-build", "."]
+command = "docker"
+
+# Build rust code
+[tasks.build]
+args = ["build", "--target", "${TARGET}"]
+command = "cross"
+dependencies = ["build-image"]
+install_crate = {crate_name = "cargo-cross", binary = "cross", test_arg = ["--help"]}
 
 # Run rustfmt
 [tasks.fmt]
@@ -39,6 +52,6 @@ dependencies = ["deploy"]
 
 # Watch source and when it changes, build+copy+run the program
 [tasks.watch]
-args = ["watch", "-x", "make run"]
+args = ["watch", "-w", "Cargo.toml", "-w", "config/", "-w", "src/", "-x", "make run"]
 command = "cargo"
 install_crate = {crate_name = "cargo-watch", binary = "cargo", test_arg = ["watch", "--help"]}

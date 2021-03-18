@@ -21,7 +21,7 @@ pub trait InputMapping: Debug {
 
 /// A formula used to transform input axis values into output axis values.
 #[derive(Copy, Clone, Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum AxisTransformation {
     /// Simple transformation that makes no changes (x => x)
     Linear,

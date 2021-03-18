@@ -6,39 +6,20 @@ Some code to run a robot I'm building. Runs on a Raspberry Pi 3.
 
 ### Dev Machine
 
-#### Cross-compiling
+#### Install Dependencies
 
-To cross-compile for the Raspberry Pi from Ubuntu:
+- [Docker](https://docs.docker.com/get-docker/) (For cross-compiling)
+- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+- [cargo-make](https://github.com/sagiegurari/cargo-make)
+  - `cargo install cargo-make`
 
-In `/etc/apt/sources.list`, add:
+Everything else you need will be installed automatically via Cargo on first run.
 
-```
-deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ focal main multiverse restricted universe
-deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ focal-updates main multiverse restricted universe
-```
+Cross-compilation setup ripped from https://capnfabs.net/posts/cross-compiling-rust-apps-raspberry-pi/, in case you need to fix something.
 
-Then run:
+#### Env setup
 
-```sh
-sudo dpkg --add-architecture armhf
-sudo apt update
-sudo apt install gcc-arm-linux-gnueabihf libudev-dev:armhf
-export PKG_CONFIG_ALLOW_CROSS=1
-```
-
-^ Those steps might not actually work at all. You may have to manually download the toolchain and add it to your `PATH`.
-
-https://chacin.dev/blog/cross-compiling-rust-for-the-raspberry-pi/
-
-#### Cargo Make
-
-Useful tool.
-
-```sh
-cargo install cargo-make
-```
-
-Then set your robot username and hostname like so:
+Set your robot username and hostname like so:
 
 ```sh
 echo ROBOT_HOST=username@hostname > robot.env

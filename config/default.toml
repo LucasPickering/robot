@@ -1,7 +1,14 @@
 i2c_device_path = "/dev/i2c-1"
 
-[input]
+[input.drive]
+left_motor_axis = {axis = "LeftStickY", transformation = "linear"}
+right_motor_axis = {axis = "RightStickY", transformation = "linear"}
 type = "tank"
 
 [drive]
 i2c_address = 96 # 0x60
+[drive.motors]
+back_left = "motor3"
+back_right = "motor4"
+front_left = "motor1"
+front_right = "motor2"
