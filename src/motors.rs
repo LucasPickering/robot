@@ -2,7 +2,7 @@ use anyhow::Context;
 use linux_embedded_hal::{i2cdev::linux::LinuxI2CError, I2cdev};
 use log::trace;
 use pwm_pca9685::{Channel, Pca9685};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::config::RobotConfig;
@@ -31,11 +31,11 @@ impl MotorHat {
     pub fn new(config: &RobotConfig) -> anyhow::Result<Self> {
         log::info!(
             "Initializing drive motor controller with device {} and address 0x{:2x}",
-            config.i2c_device_path,
+            config.general.i2c_device_path,
             config.drive.i2c_address
         );
 
-        let i2c_device = I2cdev::new(&config.i2c_device_path)?;
+        let i2c_device = I2cdev::new(&config.general.i2c_device_path)?;
         let mut pwm = Pca9685::new(i2c_device, config.drive.i2c_address)
             .map_err(convert_error)?;
         pwm.enable().map_err(convert_error)?;
@@ -93,7 +93,7 @@ struct MotorHatChannels {
 
 /// A reference to a single Motor on the HAT. These numbers line up with the
 /// numbers printed on the HAT PCB.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MotorChannel {
     Motor1,

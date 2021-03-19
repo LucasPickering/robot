@@ -1,10 +1,10 @@
 use crate::{
-    config::{DriveInputMapping, DriveMotor, InputConfig},
+    config::{DriveInputMapping, DriveMotor},
     motors::MotorChannel,
 };
 use gilrs::{Axis, Gamepad, GamepadId, Gilrs};
 use log::{debug, error, info, trace, warn};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 /// An input mapping defines how inputs on a gamepad are mapped to values on the
@@ -20,7 +20,7 @@ pub trait InputMapping: Debug {
 }
 
 /// A formula used to transform input axis values into output axis values.
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AxisTransformation {
     /// Simple transformation that makes no changes (x => x)
@@ -46,7 +46,7 @@ impl Default for AxisTransformation {
 }
 
 /// An analog axis on a gamepad.
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct InputAxis {
     /// The axis on the gamepad that we read
     pub axis: Axis,
@@ -57,17 +57,15 @@ pub struct InputAxis {
 #[derive(Debug)]
 pub struct InputHandler {
     gil: Gilrs,
-    config: InputConfig,
     // Active gamepad in use. None if there is none connected.
     gamepad_id: Option<GamepadId>,
 }
 
 impl InputHandler {
-    pub fn new(config: InputConfig) -> Self {
+    pub fn new() -> Self {
         let gil = Gilrs::new().unwrap();
         let mut rv = Self {
             gil,
-            config,
             gamepad_id: None,
         };
 
@@ -130,10 +128,14 @@ impl InputHandler {
     /// Get the value for a specific motor. The corresponding input value will
     /// be looked up using the input mapping. Returns `None` if we have no
     /// gamepad connected.
-    pub fn motor_value(&self, motor: DriveMotor) -> Option<f32> {
+    pub fn motor_value(
+        &self,
+        drive_input_mapping: DriveInputMapping,
+        motor: DriveMotor,
+    ) -> Option<f32> {
         // Map the desired motor to the corresponding input axis, based on the
         // input config
-        let axis = match self.config.drive {
+        let axis = match drive_input_mapping {
             DriveInputMapping::Tank {
                 left_motor_axis,
                 right_motor_axis,

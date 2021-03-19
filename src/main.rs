@@ -11,8 +11,9 @@ use crate::{
     motors::MotorHat,
 };
 use anyhow::Context;
+use async_std::sync::RwLock;
 use env_logger::Env;
-use std::env;
+use std::{env, sync::Arc};
 
 const DEFAULT_CONFIG_PATH: &str = "./config/default.toml";
 
@@ -21,21 +22,23 @@ const DEFAULT_CONFIG_PATH: &str = "./config/default.toml";
 // TODO fix debug derive
 // #[derive(Debug)]
 struct Robot {
-    config: RobotConfig,
+    config: Arc<RwLock<RobotConfig>>,
     input_handler: InputHandler,
     drive_motors: MotorHat,
 }
 
 impl Robot {
     pub fn new(config: RobotConfig) -> anyhow::Result<Self> {
-        let input_handler = InputHandler::new(config.input);
+        // Initialize hardware interfaces
+        let input_handler = InputHandler::new();
         let drive_motors =
             MotorHat::new(&config).context("Initializing drive motors")?;
 
-        let api = Api::new();
-        async_std::task::spawn(async {
-            api.run().await.unwrap(); // TODO remove unwrap
-        });
+        // Start an HTTP API to allow reading motor state/updating config
+        // Wrap the config in a rw lock so we can mutate it from the API
+        let config = Arc::new(RwLock::new(config));
+        let api = Api::new(Arc::clone(&config));
+        async_std::task::spawn(api.run());
 
         Ok(Self {
             config,
@@ -44,17 +47,32 @@ impl Robot {
         })
     }
 
+    /// Kick off the robot loop, after initialize is complete
+    pub async fn run(&mut self) {
+        log::info!("Starting robot loop...");
+        loop {
+            self.robot_loop().await;
+        }
+    }
+
     /// A single iteration of the main loop
-    fn robot_loop(&mut self) {
+    async fn robot_loop(&mut self) {
+        // Grab the config lock. We intentionally hold it for the whole
+        // iteration so a write can't interrupt the loop mid-iteration
+        let config = self.config.read().await;
+
         // Try to connect to a gamepad. If we already have one connected, this
         // won't do anything. This allows hot-plugging
         self.input_handler.init_gamepad();
 
         // Set speed for each drive motor based on the user input
         for &motor in DriveMotor::ALL {
-            let speed = self.input_handler.motor_value(motor).unwrap_or(0.0);
+            let speed = self
+                .input_handler
+                .motor_value(config.input.drive, motor)
+                .unwrap_or(0.0);
             // Map the drive motor position to a motor channel #
-            match self.config.drive.motors.get(&motor) {
+            match config.drive.motors.get(&motor) {
                 Some(&motor_channel) => {
                     if let Err(err) = self
                         .drive_motors
@@ -70,17 +88,10 @@ impl Robot {
             }
         }
     }
-
-    /// Kick off the robot loop, after initialize is complete
-    pub fn run(&mut self) {
-        log::info!("Starting robot loop...");
-        loop {
-            self.robot_loop();
-        }
-    }
 }
 
-fn main() {
+#[async_std::main]
+async fn main() {
     // Initialize logger with default log level
     env_logger::Builder::from_env(Env::default().default_filter_or("info"))
         .init();
@@ -95,5 +106,5 @@ fn main() {
 
     let mut robot = Robot::new(config).expect("Error initializing hardware");
     log::info!("Finished initialization");
-    robot.run();
+    robot.run().await;
 }

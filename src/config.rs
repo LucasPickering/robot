@@ -1,22 +1,23 @@
 use crate::{input::InputAxis, motors::MotorChannel};
 use config::{Config, File};
-use gilrs::Axis;
 use log::info;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RobotConfig {
-    /// Path to the I2C device on the system
-    pub i2c_device_path: String,
     /// User input configuration
     pub input: InputConfig,
     /// Robot drive system configuration
     pub drive: DriveConfig,
+    /// HTTP API config
+    pub api: ApiConfig,
+    /// Stuff that doesn't fall under other categories
+    pub general: GeneralConfig,
 }
 
 /// User input configuration, including button and axis mappings
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InputConfig {
     /// Configuration for the inputs used to control the robot drive system
     pub drive: DriveInputMapping,
@@ -25,7 +26,7 @@ pub struct InputConfig {
 /// The mapping of inputs used to control the robot's drive system. There are
 /// multiple different drive input types, so each variant in this enum
 /// represents one mapping type.
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum DriveInputMapping {
     /// Tank drive, in which the two motors on one side of the robot (left or
@@ -38,7 +39,7 @@ pub enum DriveInputMapping {
 }
 
 /// Robot drive system configuration, including motor mappings
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DriveConfig {
     /// I2C address for the drive motor controller board
     pub i2c_address: u8,
@@ -51,8 +52,22 @@ pub struct DriveConfig {
     pub motors: HashMap<DriveMotor, MotorChannel>,
 }
 
+/// HTTP API configuration. The API allows users to read and write robot state
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApiConfig {
+    /// IP and port to bind to, e.g. 127.0.0.1:8000
+    pub host: String,
+}
+
+/// General configuration fields, that don't fall under any other category
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GeneralConfig {
+    /// Path to the I2C device on the system
+    pub i2c_device_path: String,
+}
+
 /// TODO
-#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum DriveMotor {
     FrontLeft,
@@ -80,20 +95,5 @@ impl RobotConfig {
         // may want to add more config sources here at some point
 
         Ok(s.try_into()?)
-    }
-}
-
-impl Default for DriveInputMapping {
-    fn default() -> Self {
-        Self::Tank {
-            left_motor_axis: InputAxis {
-                axis: Axis::LeftStickY,
-                transformation: Default::default(),
-            },
-            right_motor_axis: InputAxis {
-                axis: Axis::RightStickY,
-                transformation: Default::default(),
-            },
-        }
     }
 }

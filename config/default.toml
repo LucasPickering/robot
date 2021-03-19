@@ -1,3 +1,4 @@
+[general]
 i2c_device_path = "/dev/i2c-1"
 
 [input.drive]
@@ -12,3 +13,6 @@ back_left = "motor3"
 back_right = "motor4"
 front_left = "motor1"
 front_right = "motor2"
+
+[api]
+host = "127.0.0.1:8000"
