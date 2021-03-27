@@ -1,15 +1,17 @@
 env_files = ["./robot.env"]
 
 [env]
+# Put cross-built artifacts in a different dir, so they don't fight rust-analyzer
+CROSS_BUILD_DIR = "target_cross"
 DEST_DIR = "~/robot"
 TARGET = "armv7-unknown-linux-gnueabihf"
 
 [env.development]
-BIN_PATH = "target/${TARGET}/debug/robot"
+BIN_PATH = "${CROSS_BUILD_DIR}/${TARGET}/debug/robot"
 
 [env.release]
 # TODO make this actually do a release build
-BIN_PATH = "target/${TARGET}/release/robot"
+BIN_PATH = "${CROSS_BUILD_DIR}/${TARGET}/release/robot"
 
 # Build docker image that we use for cross-compiling
 [tasks.build-image]
@@ -18,7 +20,7 @@ command = "docker"
 
 # Build rust code
 [tasks.build]
-args = ["build", "--target", "${TARGET}"]
+args = ["build", "--target", "${TARGET}", "--target-dir", "${PWD}/${CROSS_BUILD_DIR}"]
 command = "cross"
 dependencies = ["build-image"]
 install_crate = {crate_name = "cargo-cross", binary = "cross", test_arg = ["--help"]}
