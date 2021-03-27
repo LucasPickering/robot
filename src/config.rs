@@ -36,7 +36,8 @@ pub enum DriveInputMapping {
         left_motor_axis: InputAxis,
         right_motor_axis: InputAxis,
     },
-    /// TODO
+    /// Set motor speeds manually. All values are [-1, 1]. Useful to set motor
+    /// speeds from the HTTP API.
     Manual {
         front_left: f32,
         front_right: f32,
@@ -74,7 +75,8 @@ pub struct GeneralConfig {
     pub i2c_device_path: String,
 }
 
-/// TODO
+/// The four different drive motors on the robot, defined by their position on
+/// the robot body
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum DriveMotorLocation {

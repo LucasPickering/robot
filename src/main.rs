@@ -25,6 +25,7 @@ struct Robot {
     config: Arc<RwLock<RobotConfig>>,
     input_handler: InputHandler,
     drive_motors: MotorHat,
+    api: Api,
 }
 
 impl Robot {
@@ -38,56 +39,60 @@ impl Robot {
         // Wrap the config in a rw lock so we can mutate it from the API
         let config = Arc::new(RwLock::new(config));
         let api = Api::new(Arc::clone(&config));
+
+        Ok(Self {
+            config,
+            input_handler,
+            drive_motors,
+            api,
+        })
+    }
+
+    /// Kick off the robot loop, after initialize is complete
+    pub async fn run(mut self) {
+        log::info!("Starting robot loop...");
+
+        // Start the HTTP API
+        // TODO cancel this task on shutdown
+        let api = self.api;
         async_std::task::spawn(async {
             if let Err(err) = api.run().await {
                 log::error!("Fatal API error: {}", err);
             }
         });
 
-        Ok(Self {
-            config,
-            input_handler,
-            drive_motors,
-        })
-    }
-
-    /// Kick off the robot loop, after initialize is complete
-    pub async fn run(&mut self) {
-        log::info!("Starting robot loop...");
         loop {
-            self.robot_loop().await;
-        }
-    }
+            // Grab the config lock. We intentionally hold it for the whole
+            // iteration so a write can't interrupt the loop mid-iteration
+            let config = self.config.read().await;
 
-    /// A single iteration of the main loop
-    async fn robot_loop(&mut self) {
-        // Grab the config lock. We intentionally hold it for the whole
-        // iteration so a write can't interrupt the loop mid-iteration
-        let config = self.config.read().await;
+            // Try to connect to a gamepad. If we already have one
+            // connected, this won't do anything. This allows hot-plugging
+            self.input_handler.init_gamepad();
 
-        // Try to connect to a gamepad. If we already have one connected, this
-        // won't do anything. This allows hot-plugging
-        self.input_handler.init_gamepad();
-
-        // Set speed for each drive motor based on the user input
-        for &motor in DriveMotorLocation::ALL {
-            let speed = self
-                .input_handler
-                .motor_value(config.input.drive, motor)
-                .unwrap_or(0.0);
-            // Map the drive motor position to a motor channel #
-            match config.drive.motors.get(&motor) {
-                Some(&motor_channel) => {
-                    if let Err(err) = self
-                        .drive_motors
-                        .set_speed(motor_channel, speed)
-                        .context("Setting motor speed")
-                    {
-                        log::error!("{:?}", err);
+            // Set speed for each drive motor based on the user input
+            for &motor in DriveMotorLocation::ALL {
+                let speed = self
+                    .input_handler
+                    .motor_value(config.input.drive, motor)
+                    .unwrap_or(0.0);
+                // Map the drive motor position to a motor channel #
+                match config.drive.motors.get(&motor) {
+                    Some(&motor_channel) => {
+                        if let Err(err) = self
+                            .drive_motors
+                            .set_speed(motor_channel, speed)
+                            .context("Setting motor speed")
+                        {
+                            log::error!("{:?}", err);
+                        }
                     }
-                }
-                None => {
-                    log::warn!("No motor channel mapped to motor: {:?}", motor);
+                    None => {
+                        log::warn!(
+                            "No motor channel mapped to motor: {:?}",
+                            motor
+                        );
+                    }
                 }
             }
         }
@@ -108,7 +113,7 @@ async fn main() {
     let config = RobotConfig::load(&config_path).expect("Error loading config");
     log::info!("Loaded config:\n{:#?}", config);
 
-    let mut robot = Robot::new(config).expect("Error initializing hardware");
+    let robot = Robot::new(config).expect("Error initializing hardware");
     log::info!("Finished initialization");
     robot.run().await;
 }

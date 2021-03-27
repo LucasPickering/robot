@@ -16,6 +16,7 @@ const MAX_DUTY_CYCLE: f32 = 4095.0;
 ///
 /// Currently this only supports DC motors, but could easily be updated to
 /// support stepper motors as well if necessary.
+// TODO fix debug (probably need derive_more)
 // #[derive(Debug)]
 pub struct MotorHat {
     pwm: Pca9685<I2cdev>,
@@ -61,7 +62,7 @@ impl MotorHat {
         motor.set_speed(&mut self.pwm, speed)
     }
 
-    /// TODO
+    /// Turn all motors off. Called automatically on drop.
     pub fn off(&mut self) -> anyhow::Result<()> {
         for motor in self.motors.values() {
             motor.off(&mut self.pwm).with_context(|| {
@@ -84,7 +85,7 @@ impl Drop for MotorHat {
     }
 }
 
-/// TODO
+/// The 3 PWM channels for a single motor on the motor HAT\
 struct MotorHatChannels {
     ref_channel: Channel,
     forward_channel: Channel,
@@ -107,6 +108,7 @@ impl MotorChannel {
     pub const ALL: &'static [Self] =
         &[Self::Motor1, Self::Motor2, Self::Motor3, Self::Motor4];
 
+    /// Get the PWM channels used to control this motor
     fn pwm_channels(self) -> MotorHatChannels {
         match self {
             // TODO find docs for this on adafruit and link here
