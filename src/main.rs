@@ -11,9 +11,9 @@ use crate::{
     motors::MotorHat,
 };
 use anyhow::Context;
-use async_std::sync::RwLock;
+use async_std::{prelude::*, sync::RwLock};
 use env_logger::Env;
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, time::Duration};
 
 const DEFAULT_CONFIG_PATH: &str = "./config/default.toml";
 
@@ -25,7 +25,7 @@ struct Robot {
     config: Arc<RwLock<RobotConfig>>,
     input_handler: InputHandler,
     drive_motors: MotorHat,
-    api: Api,
+    api: Option<Api>,
 }
 
 impl Robot {
@@ -44,23 +44,23 @@ impl Robot {
             config,
             input_handler,
             drive_motors,
-            api,
+            api: Some(api),
         })
     }
 
-    /// Kick off the robot loop, after initialize is complete
-    pub async fn run(mut self) {
-        log::info!("Starting robot loop...");
-
+    /// Launch the robot program, with all the bells and whistles we need. This
+    /// will set up signal handling and launch the HTTP API as well.
+    pub fn run(mut self) -> anyhow::Result<()> {
         // Start the HTTP API
         // TODO cancel this task on shutdown
-        let api = self.api;
-        async_std::task::spawn(async {
-            if let Err(err) = api.run().await {
-                log::error!("Fatal API error: {}", err);
-            }
-        });
+        let api = self.api.take().unwrap();
 
+        async_std::task::block_on(api.run().race(self.robot_loop()))
+    }
+
+    /// The core robot loop. This handles user input and hardware interaction.
+    async fn robot_loop(&mut self) -> anyhow::Result<()> {
+        log::info!("Starting robot loop...");
         loop {
             // Grab the config lock. We intentionally hold it for the whole
             // iteration so a write can't interrupt the loop mid-iteration
@@ -95,12 +95,13 @@ impl Robot {
                     }
                 }
             }
+
+            async_std::task::sleep(Duration::from_millis(10)).await;
         }
     }
 }
 
-#[async_std::main]
-async fn main() {
+fn main() {
     // Initialize logger with default log level
     env_logger::Builder::from_env(Env::default().default_filter_or("info"))
         .init();
@@ -115,5 +116,5 @@ async fn main() {
 
     let robot = Robot::new(config).expect("Error initializing hardware");
     log::info!("Finished initialization");
-    robot.run().await;
+    robot.run(); // Gogogo
 }

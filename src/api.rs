@@ -19,7 +19,8 @@ impl Api {
         Self { app }
     }
 
-    /// Launch the HTTP server
+    /// Launch the HTTP server. The returned future will block for as long as
+    /// the server is running.
     pub async fn run(self) -> anyhow::Result<()> {
         // bruh
         let host = self
@@ -33,7 +34,14 @@ impl Api {
             .as_str()
             .to_listener()?;
         log::info!("Starting API...");
-        Ok(self.app.listen(host).await?)
+
+        // Launch the server, and log an error if it dies
+        match self.app.listen(host).await {
+            Ok(()) => log::info!("Stopped API"),
+            Err(err) => log::error!("Fatal API error: {}", err),
+        }
+
+        Ok(())
     }
 }
 
