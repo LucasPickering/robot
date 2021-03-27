@@ -6,7 +6,7 @@ mod sensors;
 
 use crate::{
     api::Api,
-    config::{DriveMotor, RobotConfig},
+    config::{DriveMotorLocation, RobotConfig},
     input::InputHandler,
     motors::MotorHat,
 };
@@ -38,7 +38,11 @@ impl Robot {
         // Wrap the config in a rw lock so we can mutate it from the API
         let config = Arc::new(RwLock::new(config));
         let api = Api::new(Arc::clone(&config));
-        async_std::task::spawn(api.run());
+        async_std::task::spawn(async {
+            if let Err(err) = api.run().await {
+                log::error!("Fatal API error: {}", err);
+            }
+        });
 
         Ok(Self {
             config,
@@ -66,7 +70,7 @@ impl Robot {
         self.input_handler.init_gamepad();
 
         // Set speed for each drive motor based on the user input
-        for &motor in DriveMotor::ALL {
+        for &motor in DriveMotorLocation::ALL {
             let speed = self
                 .input_handler
                 .motor_value(config.input.drive, motor)

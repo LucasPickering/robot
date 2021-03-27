@@ -1,5 +1,5 @@
 use crate::{
-    config::{DriveInputMapping, DriveMotor},
+    config::{DriveInputMapping, DriveMotorLocation},
     motors::MotorChannel,
 };
 use gilrs::{Axis, Gamepad, GamepadId, Gilrs};
@@ -131,21 +131,34 @@ impl InputHandler {
     pub fn motor_value(
         &self,
         drive_input_mapping: DriveInputMapping,
-        motor: DriveMotor,
+        motor: DriveMotorLocation,
     ) -> Option<f32> {
-        // Map the desired motor to the corresponding input axis, based on the
-        // input config
-        let axis = match drive_input_mapping {
+        // Map the desired motor to a motor value, based on the input config
+        match drive_input_mapping {
             DriveInputMapping::Tank {
                 left_motor_axis,
                 right_motor_axis,
-            } => match motor {
-                DriveMotor::FrontLeft => left_motor_axis,
-                DriveMotor::BackLeft => left_motor_axis,
-                DriveMotor::FrontRight => right_motor_axis,
-                DriveMotor::BackRight => right_motor_axis,
-            },
-        };
-        self.read_axis(axis)
+            } => {
+                // Map to an input axis, then read that
+                let axis = match motor {
+                    DriveMotorLocation::FrontLeft => left_motor_axis,
+                    DriveMotorLocation::FrontRight => right_motor_axis,
+                    DriveMotorLocation::BackLeft => left_motor_axis,
+                    DriveMotorLocation::BackRight => right_motor_axis,
+                };
+                self.read_axis(axis)
+            }
+            DriveInputMapping::Manual {
+                front_left,
+                front_right,
+                back_left,
+                back_right,
+            } => Some(match motor {
+                DriveMotorLocation::FrontLeft => front_left,
+                DriveMotorLocation::FrontRight => front_right,
+                DriveMotorLocation::BackLeft => back_left,
+                DriveMotorLocation::BackRight => back_right,
+            }),
+        }
     }
 }

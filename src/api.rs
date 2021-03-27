@@ -32,6 +32,7 @@ impl Api {
             .host
             .as_str()
             .to_listener()?;
+        log::info!("Starting API...");
         Ok(self.app.listen(host).await?)
     }
 }
@@ -49,6 +50,7 @@ async fn get_config(req: Request<State>) -> tide::Result<Body> {
 
 /// Update the robot's config
 async fn post_config(mut req: Request<State>) -> tide::Result<Body> {
+    // Grab the write lock, then update the whole config
     let new_config: RobotConfig = req.body_json().await?;
     *req.state().config.write().await = new_config.clone();
     Body::from_json(&new_config)

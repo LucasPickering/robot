@@ -36,6 +36,13 @@ pub enum DriveInputMapping {
         left_motor_axis: InputAxis,
         right_motor_axis: InputAxis,
     },
+    /// TODO
+    Manual {
+        front_left: f32,
+        front_right: f32,
+        back_left: f32,
+        back_right: f32,
+    },
 }
 
 /// Robot drive system configuration, including motor mappings
@@ -49,13 +56,14 @@ pub struct DriveConfig {
     /// motor 2, etc.). This _should_ always have an entry for each
     /// [DriveMotor], but that isn't enforced. If one is missing, it will
     /// trigger a warning at runtime.
-    pub motors: HashMap<DriveMotor, MotorChannel>,
+    pub motors: HashMap<DriveMotorLocation, MotorChannel>,
 }
 
 /// HTTP API configuration. The API allows users to read and write robot state
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiConfig {
-    /// IP and port to bind to, e.g. 127.0.0.1:8000
+    /// IP and port to bind to, e.g. 127.0.0.1:8000. Use 0.0.0.0 to allow
+    /// access on any host
     pub host: String,
 }
 
@@ -69,14 +77,14 @@ pub struct GeneralConfig {
 /// TODO
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
-pub enum DriveMotor {
+pub enum DriveMotorLocation {
     FrontLeft,
     FrontRight,
     BackLeft,
     BackRight,
 }
 
-impl DriveMotor {
+impl DriveMotorLocation {
     /// TODO use strum
     pub const ALL: &'static [Self] = &[
         Self::FrontLeft,
